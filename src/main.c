@@ -52,7 +52,7 @@ static void update_time() {
   if (minutes > 30) { hours = hours + 1; }
   // 11 is the new 12, better run that asgain
   if (hours > 11) { hours = hours - 12; }
-  // 60 passed the hour looksa little borked
+  // 60 passed the hour looks a little borked
   if (minutes > 55) { minutes = 0; }
   
   // Create a long-lived buffer
