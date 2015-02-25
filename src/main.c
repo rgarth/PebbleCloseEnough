@@ -44,6 +44,7 @@ static void update_time() {
   if ( remainder > 2 ) {
     minutes = minutes + 5;
   }
+  if (minutes > 55) { minutes = 0; }
   
   // Only want 12 hour time
   int hours = localtime(&temp)->tm_hour;

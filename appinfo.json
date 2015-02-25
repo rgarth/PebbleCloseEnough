@@ -12,7 +12,7 @@
     "shortName": "Close Enough",
     "uuid": "72d63c23-bf42-49ea-8deb-964e3b7af7b1",
     "versionCode": 1,
-    "versionLabel": "1.02",
+    "versionLabel": "1.03",
     "watchapp": {
         "watchface": true
     }
