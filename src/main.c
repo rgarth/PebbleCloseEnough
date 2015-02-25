@@ -7,7 +7,7 @@ static TextLayer *s_time_layer;
 static void update_time() {
   // Setup arrays for text time
   char *minute_text[12];
-    minute_text[0] = "\nO\'Clock";
+    minute_text[0] = "\noclock";
     minute_text[1] = "Five\npast\n";
     minute_text[2] = "Ten\npast\n";
     minute_text[3] = "Quarter\npast\n";
