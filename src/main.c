@@ -33,7 +33,6 @@ static void update_time() {
     hour_text[9] = "Nine";
     hour_text[10] = "Ten";
     hour_text[11] = "Eleven";
-    hour_text[12] = "Twelve";
  
   // Get a tm structure
   time_t temp = time(NULL); 
@@ -45,24 +44,21 @@ static void update_time() {
   if ( remainder > 2 ) {
     minutes = minutes + 5;
   }
-  if (minutes > 55) { minutes = 0; }
-  
-  // Only want 12 hour time
+
   int hours = localtime(&temp)->tm_hour;
-  if ( hours > 12) {
-    hours = hours - 12;
-  }
+  // 12 Hour Time
+  if (hours > 11) { hours = hours - 12; }
   // Inrease hour if we are counting toward
-  if ( minutes > 30) { hours = hours + 1; }
+  if (minutes > 30) { hours = hours + 1; }
+  // 11 is the new 12, better run that asgain
+  if (hours > 11) { hours = hours - 12; }
+  // 60 passed the hour looksa little borked
+  if (minutes > 55) { minutes = 0; }
   
   // Create a long-lived buffer
   static char buffer[25] = "";
   if ((minutes / 5) == 0) {
-    if (hours == 0) {
-      snprintf( buffer, 25, "Midnight"); 
-    } else if(hours == 12) { 
-      snprintf( buffer, 25, "Noon");
-    } else { snprintf(buffer, 25, "%s o\'clock", hour_text[hours]); }
+    snprintf(buffer, 25, "%s o\'clock", hour_text[hours]);
   } else {
     snprintf(buffer, 25, "%s%s", minute_text[minutes / 5], hour_text[hours]);
   }
