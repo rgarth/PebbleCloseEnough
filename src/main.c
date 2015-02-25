@@ -7,7 +7,7 @@ static TextLayer *s_time_layer;
 static void update_time() {
   // Setup arrays for text time
   char *minute_text[12];
-    minute_text[0] = "\noclock";
+    minute_text[0] = "";
     minute_text[1] = "Five\npast\n";
     minute_text[2] = "Ten\npast\n";
     minute_text[3] = "Quarter\npast\n";
@@ -56,7 +56,7 @@ static void update_time() {
   // Create a long-lived buffer
   static char buffer[25] = "";
   if ((minutes / 5) == 0) {
-    snprintf(buffer, 25, "%s%s", hour_text[hours], minute_text[minutes / 5]);
+    snprintf(buffer, 25, "%s o\'clock", hour_text[hours]);
   } else {
     snprintf(buffer, 25, "%s%s", minute_text[minutes / 5], hour_text[hours]);
   }
