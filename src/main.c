@@ -8,19 +8,19 @@ static void update_time() {
   // Setup arrays for text time
   char *minute_text[12];
     minute_text[0] = "";
-    minute_text[1] = "Five\npast\n";
-    minute_text[2] = "Ten\npast\n";
-    minute_text[3] = "Quarter\npast\n";
-    minute_text[4] = "Twenty\npast\n";
-    minute_text[5] = "Twenty\nfive\npast\n";
-    minute_text[6] = "Half\npast\n";
-    minute_text[7] = "Twenty\nfive\nto\n";
-    minute_text[8] = "Twenty\nto\n";
-    minute_text[9] = "Quarter\nto\n";
-    minute_text[10] = "Ten\nto\n";
-    minute_text[11] = "Five\nto\n";
+    minute_text[1] = "\nFive\npast\n";
+    minute_text[2] = "\nTen\npast\n";
+    minute_text[3] = "\nQuarter\npast\n";
+    minute_text[4] = "\nTwenty\npast\n";
+    minute_text[5] = "\nTwenty\nfive\npast\n";
+    minute_text[6] = "\nHalf\npast\n";
+    minute_text[7] = "\nTwenty\nfive\nto\n";
+    minute_text[8] = "\nTwenty\nto\n";
+    minute_text[9] = "\nQuarter\nto\n";
+    minute_text[10] = "\nTen\nto\n";
+    minute_text[11] = "\nFive\nto\n";
   
-  char *hour_text[12];
+  char *hour_text[13];
     hour_text[0] = "Twelve";
     hour_text[1] = "One";
     hour_text[2] = "Two";
@@ -33,6 +33,7 @@ static void update_time() {
     hour_text[9] = "Nine";
     hour_text[10] = "Ten";
     hour_text[11] = "Eleven";
+    hour_text[12] = "Twelve";
  
   // Get a tm structure
   time_t temp = time(NULL); 
@@ -47,21 +48,28 @@ static void update_time() {
 
   int hours = localtime(&temp)->tm_hour;
   // 12 Hour Time
-  if (hours > 11) { hours = hours - 12; }
+  if (hours > 12) { hours = hours - 12; }
   // Inrease hour if we are counting toward
   if (minutes > 30) { hours = hours + 1; }
   // 11 is the new 12, better run that asgain
-  if (hours > 11) { hours = hours - 12; }
+  if (hours > 12) { hours = hours - 12; }
   // 60 passed the hour looks a little borked
   if (minutes > 55) { minutes = 0; }
   
   // Create a long-lived buffer
   static char buffer[25] = "";
   if ((minutes / 5) == 0) {
-    snprintf(buffer, 25, "%s o\'clock", hour_text[hours]);
+    if (hours == 12) {
+      snprintf(buffer, 25, "\n\nNoon");
+    } else if (hours == 0) {
+      snprintf(buffer, 25, "\n\nMidnight");      
+    } else {
+      snprintf(buffer, 25, "\n\n%s o\'clock", hour_text[hours]);
+    }
   } else {
     snprintf(buffer, 25, "%s%s", minute_text[minutes / 5], hour_text[hours]);
   }
+  
   // Display this time on the TextLayer
   text_layer_set_text(s_time_layer, buffer);
 } 
@@ -72,7 +80,7 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
 
 static void main_window_load(Window *window) {
   // Create time TextLayer
-  s_time_layer = text_layer_create(GRect(0, 36, 144, 168));
+  s_time_layer = text_layer_create(GRect(0, 6, 144, 156));
   text_layer_set_background_color(s_time_layer, GColorBlack);
   text_layer_set_text_color(s_time_layer, GColorWhite);
 
