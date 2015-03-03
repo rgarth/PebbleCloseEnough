@@ -3,6 +3,7 @@
 static Window *s_main_window; 
 static TextLayer *s_time_layer;
 AppTimer *timer;
+static int date_screen = 0;
 
 static void update_time() {
   // Setup arrays for text time
@@ -93,18 +94,24 @@ static void update_date(){
   static char buffer[25]= "";
   snprintf(buffer, 25, "%s%i", mon_text[mon], mday);
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentRight);
-  text_layer_set_text(s_time_layer, buffer);  
+  text_layer_set_text(s_time_layer, buffer); 
+  date_screen = 1;
 }
 
 static void timer_callback(void *data) {
   update_time();
   app_timer_cancel(timer);
+  date_screen = 0;
 }
 
 static void tap_handler(AccelAxisType axis, int32_t direction) {
-  update_date();
-  // register a timer to replace date with time after 2.3 seconds
-  timer = app_timer_register(2300, (AppTimerCallback) timer_callback, NULL);
+  if (date_screen) {
+    timer_callback(NULL);
+  } else {
+    update_date();
+    // register a timer to replace date with time after 2.3 seconds
+    timer = app_timer_register(3000, (AppTimerCallback) timer_callback, NULL);
+  }
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
