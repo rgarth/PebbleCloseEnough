@@ -83,11 +83,9 @@ static void update_date(){
     mon_text[9] = "\n\nOct ";
     mon_text[10] = "\n\nNov ";
     mon_text[11] = "\n\nDec ";
-  time_t temp = time(NULL);
   // We're going to say it's midnight at 11:58, so we might as well lie about the date as well
-  int minutes = localtime(&temp)->tm_min;
-  int hours = localtime(&temp)->tm_hour;
-  if ( hours == 23 && minutes > 57) { temp = time(NULL) + 86400; }
+  // Simplified this. Easiest to think that we just run 3 minutes early all the time.
+  time_t temp = time(NULL) + 180;
   
   int mday = localtime(&temp)->tm_mday;
   int mon = localtime(&temp)->tm_mon;
