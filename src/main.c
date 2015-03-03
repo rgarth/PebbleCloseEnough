@@ -2,7 +2,8 @@
   
 static Window *s_main_window; 
 static TextLayer *s_time_layer;
-AppTimer *timer;
+AppTimer *date_timer;
+AppTimer *shake_timer;
 static int shake_counter = 0;
 
 static void update_time() {
@@ -97,9 +98,14 @@ static void update_date(){
   text_layer_set_text(s_time_layer, buffer); 
 }
 
-static void timer_callback(void *data) {
+static void date_timer_callback(void *data) {
   update_time();
-  app_timer_cancel(timer);
+  app_timer_cancel(date_timer);
+}
+
+static void shake_timer_callback(void *date) {
+  shake_counter = 0;
+  app_timer_cancel(shake_timer);
 }
 
 static void tap_handler(AccelAxisType axis, int32_t direction) {
@@ -107,10 +113,13 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
   if (shake_counter) {
     update_date();
     // register a timer to replace date with time after 2.5 seconds
-    timer = app_timer_register(2500, (AppTimerCallback) timer_callback, NULL);
+    date_timer = app_timer_register(2500, (AppTimerCallback) date_timer_callback, NULL);
     shake_counter = 0;
   // reset the counter so the next "first" shake can be for the back light
-  } else { shake_counter = 1; }
+  } else { 
+    shake_counter = 1;
+    shake_timer = app_timer_register(10000, (AppTimerCallback) shake_timer_callback, NULL);
+  }
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
