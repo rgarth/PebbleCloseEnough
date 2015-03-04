@@ -1,7 +1,10 @@
 {
-    "appKeys": {},
+    "appKeys": {
+        "KEY_CONDITIONS": 1,
+        "KEY_TEMPERATURE": 0
+    },
     "capabilities": [
-        ""
+        "location"
     ],
     "companyName": "rgarth@gmail.com",
     "longName": "Close Enough Watchface",
@@ -20,7 +23,7 @@
     "shortName": "Close Enough",
     "uuid": "72d63c23-bf42-49ea-8deb-964e3b7af7b1",
     "versionCode": 1,
-    "versionLabel": "2.03",
+    "versionLabel": "2.05",
     "watchapp": {
         "watchface": true
     }

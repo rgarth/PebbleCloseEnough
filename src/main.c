@@ -1,10 +1,17 @@
 #include <pebble.h>
+
+#define KEY_TEMPERATURE 0
+#define KEY_CONDITIONS 1
   
 static Window *s_main_window; 
 static TextLayer *s_time_layer;
-AppTimer *date_timer;
+AppTimer *face_timer;
 AppTimer *shake_timer;
 static int shake_counter = 0;
+
+// Making this global
+static char temperature_buffer[8];
+static char conditions_buffer[32]; 
 
 static void update_time() {
   // Setup arrays for text time
@@ -98,9 +105,17 @@ static void update_date(){
   text_layer_set_text(s_time_layer, buffer); 
 }
 
-static void date_timer_callback(void *data) {
+static void update_weather(){
+  static char buffer[25]= "";
+  snprintf(buffer, 25, "\n\n%s\u00B0\n%s", temperature_buffer, conditions_buffer);
+  text_layer_set_text_alignment(s_time_layer, GTextAlignmentLeft);
+  text_layer_set_text(s_time_layer, buffer); 
+}
+
+static void face_timer_callback(void *data) {
+  shake_counter = 0;
   update_time();
-  app_timer_cancel(date_timer);
+  app_timer_cancel(face_timer);
 }
 
 static void shake_timer_callback(void *date) {
@@ -109,22 +124,81 @@ static void shake_timer_callback(void *date) {
 }
 
 static void tap_handler(AccelAxisType axis, int32_t direction) {
-  // Lets assume the first shake was for the back light
-  if (shake_counter) {
-    update_date();
-    // register a timer to replace date with time after 2.5 seconds
-    date_timer = app_timer_register(2500, (AppTimerCallback) date_timer_callback, NULL);
-    shake_counter = 0;
-  // reset the counter so the next "first" shake can be for the back light
-  } else { 
-    shake_counter = 1;
+  switch(shake_counter){
+  case 0: 
+    // Lets assume the first shake was for the back light
     shake_timer = app_timer_register(10000, (AppTimerCallback) shake_timer_callback, NULL);
+    break;
+  case 1:
+    update_date();
+    // register a timer to replace date with time after 4 seconds
+    face_timer = app_timer_register(4000, (AppTimerCallback) face_timer_callback, NULL);
+    // increment the counter
+    break;
+  case 2:
+    update_weather();
+    // register a timer to replace date with time after 4 seconds
+    app_timer_reschedule(face_timer, 4000);
+    // increment the counter
+    break;
   }
+  shake_counter = shake_counter + 1;
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   update_time();
+  
+  // Get weather update every 30 minutes
+  if(tick_time->tm_min % 30 == 0){
+    // Begin dictionary
+    DictionaryIterator *iter;
+    app_message_outbox_begin(&iter);
+
+    // Add a key-value pair
+    dict_write_uint8(iter, 0, 0);
+
+    // Send the message!
+    app_message_outbox_send();
+
+  }
+
 }
+
+static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
+// Read first item
+  Tuple *t = dict_read_first(iterator);
+
+  // For all items
+  while(t != NULL) {
+    // Which key was received?
+    switch(t->key) {
+    case KEY_TEMPERATURE:
+      snprintf(temperature_buffer, sizeof(temperature_buffer), "%d", (int)t->value->int32);
+      break;
+    case KEY_CONDITIONS:
+      snprintf(conditions_buffer, sizeof(conditions_buffer), "%s", t->value->cstring);
+      break;
+    default:
+      APP_LOG(APP_LOG_LEVEL_ERROR, "Key %d not recognized!", (int)t->key);
+      break;
+    }   
+
+    // Look for next item
+    t = dict_read_next(iterator);
+  }
+}
+
+static void inbox_dropped_callback(AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Message dropped!");
+}
+
+static void outbox_failed_callback(DictionaryIterator *iterator, AppMessageResult reason, void *context) {
+  APP_LOG(APP_LOG_LEVEL_ERROR, "Outbox send failed!");
+}
+
+static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
+  APP_LOG(APP_LOG_LEVEL_INFO, "Outbox send success!");
+} 
 
 static void main_window_load(Window *window) {
   // Create time TextLayer
@@ -147,6 +221,15 @@ static void main_window_unload(Window *window) {
 } 
 
 static void init () {
+  // Register callbacks
+  app_message_register_inbox_received(inbox_received_callback);
+  app_message_register_inbox_dropped(inbox_dropped_callback);
+  app_message_register_outbox_failed(outbox_failed_callback);
+  app_message_register_outbox_sent(outbox_sent_callback);
+  
+  // Open AppMessage
+  app_message_open(app_message_inbox_size_maximum(), app_message_outbox_size_maximum());
+  
   // Create main Window element and assign to pointer
   s_main_window = window_create();
   
