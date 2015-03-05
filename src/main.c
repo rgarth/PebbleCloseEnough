@@ -5,7 +5,6 @@
   
 static Window *s_main_window; 
 static TextLayer *s_time_layer;
-AppTimer *face_timer;
 AppTimer *shake_timer;
 static int shake_counter = 0;
 
@@ -112,15 +111,10 @@ static void update_weather(){
   text_layer_set_text(s_time_layer, buffer); 
 }
 
-static void face_timer_callback(void *data) {
-  shake_counter = 0;
-  update_time();
-  app_timer_cancel(face_timer);
-}
-
 static void shake_timer_callback(void *date) {
   shake_counter = 0;
   app_timer_cancel(shake_timer);
+  update_time();
 }
 
 static void tap_handler(AccelAxisType axis, int32_t direction) {
@@ -131,15 +125,13 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
     break;
   case 1:
     update_date();
-    // register a timer to replace date with time after 4 seconds
-    face_timer = app_timer_register(4000, (AppTimerCallback) face_timer_callback, NULL);
-    // increment the counter
+    // reset the time to replace date with time after 4 seconds
+    app_timer_reschedule(shake_timer, 4000);
     break;
   case 2:
     update_weather();
-    // register a timer to replace date with time after 4 seconds
-    app_timer_reschedule(face_timer, 4000);
-    // increment the counter
+    // reset the timer to replace date with time after 4 seconds
+    app_timer_reschedule(shake_timer, 4000);
     break;
   }
   shake_counter = shake_counter + 1;
