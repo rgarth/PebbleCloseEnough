@@ -34,6 +34,12 @@
     </div>
     <script>
 
+      function saveOptions() {
+        var options = {}
+        options["units"] = $('input:radio[name=units]:checked').val();
+        return options;
+      }
+
       $().ready(function() {
         $("#b-cancel").click(function() {
           console.log("Cancel");
@@ -43,7 +49,7 @@
         $("#b-submit").click(function() {
           console.log("Submit");
 
-          var location = "pebblejs://close#units=" + $('input:radio[name=units]:checked').val();
+          var location = "pebblejs://close#" + encodeURIComponent(JSON.stringify(saveOptions()));
           console.log("Warping to: " + location);
           console.log(location);
           document.location = location;
