@@ -1,3 +1,8 @@
+
+// Location success can Inly take a single variable
+// It was just simply to declare a global
+var units = "Imperial";
+
 var xhrRequest = function (url, type, callback) {
   var xhr = new XMLHttpRequest();
   xhr.onload = function () {
@@ -9,8 +14,10 @@ var xhrRequest = function (url, type, callback) {
 
 function locationSuccess(pos) {
   // Construct URL
-  var url = "http://api.openweathermap.org/data/2.5/weather?units=imperial&lat=" +
-      pos.coords.latitude + "&lon=" + pos.coords.longitude;
+  var url = "http://api.openweathermap.org/data/2.5/weather?" + 
+      "units=" + units +
+      "&lat=" + pos.coords.latitude +
+      "&lon=" + pos.coords.longitude;
 
   // Send request to OpenWeatherMap
   xhrRequest(url, 'GET', 
@@ -70,7 +77,11 @@ Pebble.addEventListener('ready',
 // Listen for when an AppMessage is received
 Pebble.addEventListener('appmessage',
   function(e) {
-    console.log("AppMessage received!");
+    console.log("AppMessage received: " + e.payload.KEY_UNITS);
+    units = e.payload.KEY_UNITS;
+    if (typeof units == 'undefined') {
+      units = "imperial";
+    }
     getWeather();
   }                     
 );

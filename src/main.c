@@ -1,7 +1,12 @@
 #include <pebble.h>
+#include <ctype.h>
 
 #define KEY_TEMPERATURE 0
 #define KEY_CONDITIONS 1
+#define KEY_UNITS 2
+  
+#define MyTupletCString(_key, _cstring) \
+((const Tuplet) { .type = TUPLE_CSTRING, .key = _key, .cstring = { .data = _cstring, .length = strlen(_cstring) + 1 }})
   
 static Window *s_main_window; 
 static TextLayer *s_time_layer;
@@ -9,10 +14,12 @@ AppTimer *shake_timer;
 static int shake_counter = 0;
 
 // Making this global
-static char temperature_buffer[8];
-static char conditions_buffer[32]; 
+static int temperature;
+static char conditions_buffer[32];
+// First time we run there is no stored value
+static char temp_units[9] = "imperial";
 
-static void update_time() {
+static void show_time() {
   // Setup arrays for text time
   char *minute_text[12];
     minute_text[0] = "";
@@ -76,7 +83,7 @@ static void update_time() {
   text_layer_set_text(s_time_layer, buffer);
 } 
 
-static void update_date(){
+static void show_date(){
   
   char *mon_text[12];
     mon_text[0] = "\n\nJan ";
@@ -104,9 +111,9 @@ static void update_date(){
   text_layer_set_text(s_time_layer, buffer); 
 }
 
-static void update_weather(){
+static void show_weather(){
   static char buffer[25]= "";
-  snprintf(buffer, 25, "\n\n%s\u00B0\n%s", temperature_buffer, conditions_buffer);
+  snprintf(buffer, 25, "\n\n%i\u00B0\n%s", temperature, conditions_buffer);
   text_layer_set_text_alignment(s_time_layer, GTextAlignmentLeft);
   text_layer_set_text(s_time_layer, buffer); 
 }
@@ -114,7 +121,7 @@ static void update_weather(){
 static void shake_timer_callback(void *date) {
   shake_counter = 0;
   app_timer_cancel(shake_timer);
-  update_time();
+  show_time();
 }
 
 static void tap_handler(AccelAxisType axis, int32_t direction) {
@@ -124,12 +131,12 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
     shake_timer = app_timer_register(10000, (AppTimerCallback) shake_timer_callback, NULL);
     break;
   case 1:
-    update_date();
+    show_date();
     // reset the time to replace date with time after 4 seconds
     app_timer_reschedule(shake_timer, 4000);
     break;
   case 2:
-    update_weather();
+    show_weather();
     // reset the timer to replace date with time after 4 seconds
     app_timer_reschedule(shake_timer, 4000);
     break;
@@ -137,27 +144,34 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
   shake_counter = shake_counter + 1;
 }
 
+static void update_weather() {
+    
+  // Begin dictionary
+  DictionaryIterator *iter;
+  app_message_outbox_begin(&iter);
+  
+  Tuplet tuple = MyTupletCString(KEY_UNITS, temp_units);
+
+  // Add a key-value pair
+  dict_write_tuplet(iter, &tuple);
+
+  // Send the message!
+  app_message_outbox_send();
+}
+
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
-  update_time();
+  show_time();
   
   // Get weather update every 30 minutes
   if(tick_time->tm_min % 30 == 0){
-    // Begin dictionary
-    DictionaryIterator *iter;
-    app_message_outbox_begin(&iter);
-
-    // Add a key-value pair
-    dict_write_uint8(iter, 0, 0);
-
-    // Send the message!
-    app_message_outbox_send();
-
+    update_weather();
   }
 
 }
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
-// Read first item
+  APP_LOG(APP_LOG_LEVEL_INFO, "Message received!");
+  // Read first item
   Tuple *t = dict_read_first(iterator);
 
   // For all items
@@ -165,10 +179,18 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
     // Which key was received?
     switch(t->key) {
     case KEY_TEMPERATURE:
-      snprintf(temperature_buffer, sizeof(temperature_buffer), "%d", (int)t->value->int32);
+      temperature = t->value->int32;        
+      APP_LOG(APP_LOG_LEVEL_INFO, "Temperature %d!", temperature);
       break;
     case KEY_CONDITIONS:
       snprintf(conditions_buffer, sizeof(conditions_buffer), "%s", t->value->cstring);
+      APP_LOG(APP_LOG_LEVEL_INFO, "Conditions %s!", conditions_buffer);
+      break;
+    case KEY_UNITS:
+      snprintf(temp_units, sizeof(temp_units), "%s", t->value->cstring);
+      persist_write_string(KEY_UNITS, temp_units);
+      APP_LOG(APP_LOG_LEVEL_INFO, "Storing temperature units: %s", temp_units);
+      update_weather();
       break;
     default:
       APP_LOG(APP_LOG_LEVEL_ERROR, "Key %d not recognized!", (int)t->key);
@@ -213,6 +235,12 @@ static void main_window_unload(Window *window) {
 } 
 
 static void init () {
+  // Load stored values
+  if (persist_exists(KEY_UNITS)) {
+    persist_read_string(KEY_UNITS, temp_units, sizeof(temp_units));
+    APP_LOG(APP_LOG_LEVEL_INFO, "Reading temperature units: %s", temp_units);
+  }
+  
   // Register callbacks
   app_message_register_inbox_received(inbox_received_callback);
   app_message_register_inbox_dropped(inbox_dropped_callback);
@@ -237,7 +265,7 @@ static void init () {
   window_stack_push(s_main_window, true);
   
   // Make sure the time is displayed from the start
-  update_time();
+  show_time();
   
   // Register with TickTimerService
   tick_timer_service_subscribe(MINUTE_UNIT, tick_handler);
