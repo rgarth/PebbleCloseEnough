@@ -68,9 +68,23 @@ function getWeather() {
 Pebble.addEventListener('ready', 
   function(e) {
     console.log("PebbleKit JS ready!");
+    var dictionary = {
+        "KEY_JSREADY": 1
+    };
+
+    // Send to Pebble, so we can load units variable and send it back
+    Pebble.sendAppMessage(dictionary,
+      function(e) {
+        console.log("Ready notice sent to phone!");
+      },
+      function(e) {
+        console.log("Error ready notice to Pebble!");
+      }
+    );
+ 
 
     // Get the initial weather
-    getWeather();
+    //getWeather();
   }
 );
 

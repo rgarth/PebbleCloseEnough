@@ -4,6 +4,7 @@
 #define KEY_TEMPERATURE 0
 #define KEY_CONDITIONS 1
 #define KEY_UNITS 2
+#define KEY_JSREADY 3
   
 #define MyTupletCString(_key, _cstring) \
 ((const Tuplet) { .type = TUPLE_CSTRING, .key = _key, .cstring = { .data = _cstring, .length = strlen(_cstring) + 1 }})
@@ -191,6 +192,12 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       persist_write_string(KEY_UNITS, temp_units);
       APP_LOG(APP_LOG_LEVEL_INFO, "Storing temperature units: %s", temp_units);
       update_weather();
+      break;
+    case KEY_JSREADY:
+      APP_LOG(APP_LOG_LEVEL_INFO, "PebbleJS is ready!");
+      if (t->value->int16) {
+        update_weather();
+      }
       break;
     default:
       APP_LOG(APP_LOG_LEVEL_ERROR, "Key %d not recognized!", (int)t->key);
