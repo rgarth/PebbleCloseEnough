@@ -18,6 +18,7 @@ function locationSuccess(pos) {
       "units=" + units +
       "&lat=" + pos.coords.latitude +
       "&lon=" + pos.coords.longitude;
+  console.log("URL is " + url);
 
   // Send request to OpenWeatherMap
   xhrRequest(url, 'GET', 

@@ -8,11 +8,15 @@
   
 #define MyTupletCString(_key, _cstring) \
 ((const Tuplet) { .type = TUPLE_CSTRING, .key = _key, .cstring = { .data = _cstring, .length = strlen(_cstring) + 1 }})
-  
+
+// Default length for extra watch faces 2 seconds
+static int default_timeout = (2 * 1000);
+
 static Window *s_main_window; 
-static TextLayer *s_time_layer;
+static TextLayer *s_text_layer;
+static TextLayer *s_numeral_layer;
 AppTimer *shake_timer;
-static int shake_counter = 0;
+static int face_counter = 0;
 
 // Making this global
 static int temperature;
@@ -21,6 +25,8 @@ static char conditions_buffer[32];
 static char temp_units[9] = "imperial";
 
 static void show_time() {
+  layer_set_hidden(text_layer_get_layer(s_text_layer), 0);
+  layer_set_hidden(text_layer_get_layer(s_numeral_layer), 1);
   // Setup arrays for text time
   char *minute_text[12];
     minute_text[0] = "";
@@ -80,12 +86,13 @@ static void show_time() {
   }
   
   // Display this time on the TextLayer
-  text_layer_set_text_alignment(s_time_layer, GTextAlignmentLeft);
-  text_layer_set_text(s_time_layer, buffer);
+  text_layer_set_text_alignment(s_text_layer, GTextAlignmentLeft);
+  text_layer_set_text(s_text_layer, buffer);
 } 
 
 static void show_date(){
-  
+  layer_set_hidden(text_layer_get_layer(s_text_layer), 0);
+  layer_set_hidden(text_layer_get_layer(s_numeral_layer), 1);
   char *mon_text[12];
     mon_text[0] = "\n\nJan ";
     mon_text[1] = "\n\nFeb ";
@@ -99,65 +106,102 @@ static void show_date(){
     mon_text[9] = "\n\nOct ";
     mon_text[10] = "\n\nNov ";
     mon_text[11] = "\n\nDec ";
-  // We're going to say it's midnight at 11:58, so we might as well lie about the date as well
-  // Simplified this. Easiest to think that we just run 3 minutes early all the time.
-  time_t temp = time(NULL) + 180;
+  time_t temp = time(NULL);
   
   int mday = localtime(&temp)->tm_mday;
   int mon = localtime(&temp)->tm_mon;
 
   static char buffer[25]= "";
   snprintf(buffer, 25, "%s%i", mon_text[mon], mday);
-  text_layer_set_text_alignment(s_time_layer, GTextAlignmentRight);
-  text_layer_set_text(s_time_layer, buffer); 
+  text_layer_set_text_alignment(s_text_layer, GTextAlignmentRight);
+  text_layer_set_text(s_text_layer, buffer); 
 }
 
 static void show_weather(){
+  layer_set_hidden(text_layer_get_layer(s_text_layer), 0);
+  layer_set_hidden(text_layer_get_layer(s_numeral_layer), 1);
   static char buffer[25]= "";
   snprintf(buffer, 25, "\n\n%i\u00B0\n%s", temperature, conditions_buffer);
-  text_layer_set_text_alignment(s_time_layer, GTextAlignmentLeft);
-  text_layer_set_text(s_time_layer, buffer); 
+  text_layer_set_text_alignment(s_text_layer, GTextAlignmentLeft);
+  text_layer_set_text(s_text_layer, buffer); 
+}
+
+static void show_real_time() {
+  // Get a tm structure
+  time_t temp = time(NULL); 
+  struct tm *tick_time = localtime(&temp);
+
+  // Create a long-lived buffer
+  static char buffer[] = "00:00";
+
+  // Write the current hours and minutes into the buffer
+  if(clock_is_24h_style() == true) {
+    // Use 24 hour format
+    strftime(buffer, sizeof("00:00"), "%H:%M", tick_time);
+  } else {
+    // Use 12 hour format
+    strftime(buffer, sizeof("00:00"), "%l:%M", tick_time);
+  }
+
+  // Display this time on the TextLayer
+  text_layer_set_text(s_numeral_layer, buffer);
+  layer_set_hidden(text_layer_get_layer(s_text_layer), 1);
+  layer_set_hidden(text_layer_get_layer(s_numeral_layer), 0);
 }
 
 static void shake_timer_callback(void *date) {
-  shake_counter = 0;
-  app_timer_cancel(shake_timer);
-  show_time();
+
+  switch (face_counter) {
+  case 1:
+    show_date();
+    face_counter = 2;
+    shake_timer = app_timer_register(default_timeout, (AppTimerCallback) shake_timer_callback, NULL);
+    break;
+  case 2:
+    // Only show the weather if we have data
+    if (temperature) {
+      show_weather();
+      face_counter = 3;
+      shake_timer = app_timer_register(default_timeout, (AppTimerCallback) shake_timer_callback, NULL);
+      break;
+    }
+  default:
+    show_time();
+    face_counter = 0;
+    light_enable(0);
+  }
 }
 
 static void tap_handler(AccelAxisType axis, int32_t direction) {
-  switch(shake_counter){
-  case 0: 
-    // Lets assume the first shake was for the back light
-    shake_timer = app_timer_register(10000, (AppTimerCallback) shake_timer_callback, NULL);
-    break;
-  case 1:
-    show_date();
-    // reset the time to replace date with time after 4 seconds
-    app_timer_reschedule(shake_timer, 4000);
-    break;
-  case 2:
-    show_weather();
-    // reset the timer to replace date with time after 4 seconds
-    app_timer_reschedule(shake_timer, 4000);
-    break;
+  if (face_counter == 0) {
+    // Turn on the Back light explicitly, will return it to pebble control in the timer_callback
+    light_enable(1);
+    show_real_time();
+    face_counter = 1;
+    shake_timer = app_timer_register(default_timeout, (AppTimerCallback) shake_timer_callback, NULL);
   }
-  shake_counter = shake_counter + 1;
 }
 
 static void update_weather() {
+  // Only grab the weather if we can talk to phone
+  if (bluetooth_connection_service_peek()) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Phone is connected!");
     
-  // Begin dictionary
-  DictionaryIterator *iter;
-  app_message_outbox_begin(&iter);
+    // Begin dictionary
+    DictionaryIterator *iter;
+    app_message_outbox_begin(&iter);
   
-  Tuplet tuple = MyTupletCString(KEY_UNITS, temp_units);
+    Tuplet tuple = MyTupletCString(KEY_UNITS, temp_units);
 
-  // Add a key-value pair
-  dict_write_tuplet(iter, &tuple);
+    // Add a key-value pair
+    dict_write_tuplet(iter, &tuple);
 
-  // Send the message!
-  app_message_outbox_send();
+    // Send the message!
+    app_message_outbox_send();
+    
+  } else {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Phone is not connected!");
+  } 
 }
 
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
@@ -168,6 +212,19 @@ static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
     update_weather();
   }
 
+}
+
+static void bt_handler(bool connected) {
+  if (connected) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Phone has connected!");
+    vibes_short_pulse();
+    update_weather();
+    
+  } else {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Phone has disconnected!");
+    vibes_short_pulse(); 
+  }
+  
 }
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
@@ -188,6 +245,8 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       APP_LOG(APP_LOG_LEVEL_INFO, "Conditions %s!", conditions_buffer);
       break;
     case KEY_UNITS:
+      // units returned from configuration.js
+      // we should regrab the weather in the correct units
       snprintf(temp_units, sizeof(temp_units), "%s", t->value->cstring);
       persist_write_string(KEY_UNITS, temp_units);
       APP_LOG(APP_LOG_LEVEL_INFO, "Storing temperature units: %s", temp_units);
@@ -223,22 +282,30 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
 
 static void main_window_load(Window *window) {
   // Create time TextLayer
-  s_time_layer = text_layer_create(GRect(0, 6, 144, 156));
-  text_layer_set_background_color(s_time_layer, GColorBlack);
-  text_layer_set_text_color(s_time_layer, GColorWhite);
+  s_text_layer = text_layer_create(GRect(0, 6, 144, 156));
+  text_layer_set_background_color(s_text_layer, GColorBlack);
+  text_layer_set_text_color(s_text_layer, GColorWhite);
+  text_layer_set_font(s_text_layer, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK));
+  text_layer_set_text_alignment(s_text_layer, GTextAlignmentLeft);
 
-  // Improve the layout to be more like a watchface
-  text_layer_set_font(s_time_layer, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK));
-  text_layer_set_text_alignment(s_time_layer, GTextAlignmentLeft);
+  // Create hidden tet layer for showing accurate time in digits
+  s_numeral_layer = text_layer_create(GRect(0, 63, 144, 42));
+  layer_set_hidden(text_layer_get_layer(s_numeral_layer), 1);
+  text_layer_set_background_color(s_numeral_layer, GColorBlack);
+  text_layer_set_text_color(s_numeral_layer, GColorWhite);
+  text_layer_set_font(s_numeral_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+  text_layer_set_text_alignment(s_numeral_layer, GTextAlignmentCenter);
 
   // Add it as a child layer to the Window's root layer
-  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_time_layer));
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_text_layer));
+  layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_numeral_layer));
 
 }
 
 static void main_window_unload(Window *window) {
   // Destroy TextLayer
-  text_layer_destroy(s_time_layer);
+  text_layer_destroy(s_text_layer);
+  text_layer_destroy(s_numeral_layer);
 } 
 
 static void init () {
@@ -280,7 +347,9 @@ static void init () {
   // Register with  AccelTimeService
   // A time will show to date
   accel_tap_service_subscribe(tap_handler); 
-
+  
+  // Register with the BluetoothConnectionService
+  bluetooth_connection_service_subscribe(bt_handler); 
 }
 
 static void deinit () {
