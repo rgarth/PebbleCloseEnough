@@ -173,14 +173,14 @@ static void shake_timer_callback(void *date) {
     break;
   default:
     face_counter = 0;
-    light_enable(0);
+    //light_enable(0);
   }
 }
 
 static void tap_handler(AccelAxisType axis, int32_t direction) {
   if (face_counter == 0) {
     // Turn on the Back light explicitly, will return it to pebble control in the timer_callback
-    light_enable(1);
+    //light_enable(1);
     show_real_time();
     face_counter = 1;
     shake_timer = app_timer_register(default_timeout, (AppTimerCallback) shake_timer_callback, NULL);
