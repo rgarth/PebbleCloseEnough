@@ -24,23 +24,32 @@ static char conditions_buffer[32];
 // First time we run there is no stored value
 static char temp_units[9] = "imperial";
 
+static void v_align() {
+  layer_set_frame(text_layer_get_layer(s_text_layer), GRect(0, 0, 144, 168));  
+  GSize text_size = (text_layer_get_content_size(s_text_layer));
+  int text_height = text_size.h;
+  int y_origin = (168/2) - (text_height/2);
+  text_layer_set_size(s_text_layer, text_size);
+  layer_set_frame(text_layer_get_layer(s_text_layer), GRect(0, y_origin, 144, text_height)); 
+}
+
 static void show_time() {
   layer_set_hidden(text_layer_get_layer(s_text_layer), 0);
   layer_set_hidden(text_layer_get_layer(s_numeral_layer), 1);
   // Setup arrays for text time
   char *minute_text[12];
     minute_text[0] = "";
-    minute_text[1] = "\nFive\npast\n";
-    minute_text[2] = "\nTen\npast\n";
-    minute_text[3] = "\nQuarter\npast\n";
-    minute_text[4] = "\nTwenty\npast\n";
-    minute_text[5] = "\nTwenty\nfive\npast\n";
-    minute_text[6] = "\nHalf\npast\n";
-    minute_text[7] = "\nTwenty\nfive\nto\n";
-    minute_text[8] = "\nTwenty\nto\n";
-    minute_text[9] = "\nQuarter\nto\n";
-    minute_text[10] = "\nTen\nto\n";
-    minute_text[11] = "\nFive\nto\n";
+    minute_text[1] = "Five\npast\n";
+    minute_text[2] = "Ten\npast\n";
+    minute_text[3] = "Quarter\npast\n";
+    minute_text[4] = "Twenty\npast\n";
+    minute_text[5] = "Twenty\nfive\npast\n";
+    minute_text[6] = "Half\npast\n";
+    minute_text[7] = "Twenty\nfive\nto\n";
+    minute_text[8] = "Twenty\nto\n";
+    minute_text[9] = "Quarter\nto\n";
+    minute_text[10] = "Ten\nto\n";
+    minute_text[11] = "Five\nto\n";
   
   char *hour_text[12];
     hour_text[0] = "Twelve";
@@ -80,7 +89,7 @@ static void show_time() {
   // Create a long-lived buffer
   static char buffer[25] = "";
   if ((minutes / 5) == 0) {
-    snprintf(buffer, 25, "\n\n%s o\'clock", hour_text[hours]);
+    snprintf(buffer, 25, "%s o\'clock", hour_text[hours]);
   } else {
     snprintf(buffer, 25, "%s%s", minute_text[minutes / 5], hour_text[hours]);
   }
@@ -88,24 +97,25 @@ static void show_time() {
   // Display this time on the TextLayer
   text_layer_set_text_alignment(s_text_layer, GTextAlignmentLeft);
   text_layer_set_text(s_text_layer, buffer);
+  v_align();
 } 
 
 static void show_date(){
   layer_set_hidden(text_layer_get_layer(s_text_layer), 0);
   layer_set_hidden(text_layer_get_layer(s_numeral_layer), 1);
   char *mon_text[12];
-    mon_text[0] = "\n\nJan ";
-    mon_text[1] = "\n\nFeb ";
-    mon_text[2] = "\n\nMar ";
-    mon_text[3] = "\n\nApr ";
-    mon_text[4] = "\n\nMay ";
-    mon_text[5] = "\n\nJun ";
-    mon_text[6] = "\n\nJul ";
-    mon_text[7] = "\n\nAug ";
-    mon_text[8] = "\n\nSep ";
-    mon_text[9] = "\n\nOct ";
-    mon_text[10] = "\n\nNov ";
-    mon_text[11] = "\n\nDec ";
+    mon_text[0] = "Jan ";
+    mon_text[1] = "Feb ";
+    mon_text[2] = "Mar ";
+    mon_text[3] = "Apr ";
+    mon_text[4] = "May ";
+    mon_text[5] = "Jun ";
+    mon_text[6] = "Jul ";
+    mon_text[7] = "Aug ";
+    mon_text[8] = "Sep ";
+    mon_text[9] = "Oct ";
+    mon_text[10] = "Nov ";
+    mon_text[11] = "Dec ";
   time_t temp = time(NULL);
   
   int mday = localtime(&temp)->tm_mday;
@@ -114,16 +124,18 @@ static void show_date(){
   static char buffer[25]= "";
   snprintf(buffer, 25, "%s%i", mon_text[mon], mday);
   text_layer_set_text_alignment(s_text_layer, GTextAlignmentRight);
-  text_layer_set_text(s_text_layer, buffer); 
+  text_layer_set_text(s_text_layer, buffer);
+  v_align();
 }
 
 static void show_weather(){
   layer_set_hidden(text_layer_get_layer(s_text_layer), 0);
   layer_set_hidden(text_layer_get_layer(s_numeral_layer), 1);
   static char buffer[25]= "";
-  snprintf(buffer, 25, "\n\n%i\u00B0\n%s", temperature, conditions_buffer);
+  snprintf(buffer, 25, "%i\u00B0\n%s", temperature, conditions_buffer);
   text_layer_set_text_alignment(s_text_layer, GTextAlignmentLeft);
   text_layer_set_text(s_text_layer, buffer); 
+  v_align();
 }
 
 static void show_real_time() {
