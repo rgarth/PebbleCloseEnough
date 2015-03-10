@@ -27,7 +27,7 @@ static char temp_units[9] = "imperial";
 static void v_align() {
   layer_set_frame(text_layer_get_layer(s_text_layer), GRect(0, 0, 144, 168));  
   GSize text_size = (text_layer_get_content_size(s_text_layer));
-  int text_height = text_size.h;
+  int text_height = text_size.h + 5;
   int y_origin = (168/2) - (text_height/2);
   text_layer_set_size(s_text_layer, text_size);
   layer_set_frame(text_layer_get_layer(s_text_layer), GRect(0, y_origin, 144, text_height)); 
@@ -100,7 +100,7 @@ static void show_time() {
   v_align();
 } 
 
-static void show_date(){
+static void show_date(){  // and weather
   layer_set_hidden(text_layer_get_layer(s_text_layer), 0);
   layer_set_hidden(text_layer_get_layer(s_numeral_layer), 1);
   char *mon_text[12];
@@ -122,19 +122,13 @@ static void show_date(){
   int mon = localtime(&temp)->tm_mon;
 
   static char buffer[25]= "";
-  snprintf(buffer, 25, "%s%i", mon_text[mon], mday);
+  if (temperature) {
+    snprintf(buffer, 25, "%s%i\n%i\u00B0", mon_text[mon], mday, temperature);
+  } else {
+    snprintf(buffer, 25, "%s%i", mon_text[mon], mday);    
+  }
   text_layer_set_text_alignment(s_text_layer, GTextAlignmentRight);
   text_layer_set_text(s_text_layer, buffer);
-  v_align();
-}
-
-static void show_weather(){
-  layer_set_hidden(text_layer_get_layer(s_text_layer), 0);
-  layer_set_hidden(text_layer_get_layer(s_numeral_layer), 1);
-  static char buffer[25]= "";
-  snprintf(buffer, 25, "%i\u00B0\n%s", temperature, conditions_buffer);
-  text_layer_set_text_alignment(s_text_layer, GTextAlignmentLeft);
-  text_layer_set_text(s_text_layer, buffer); 
   v_align();
 }
 
@@ -152,7 +146,11 @@ static void show_real_time() {
     strftime(buffer, sizeof("00:00"), "%H:%M", tick_time);
   } else {
     // Use 12 hour format
-    strftime(buffer, sizeof("00:00"), "%l:%M", tick_time);
+    strftime(buffer, sizeof("00:00"), "%I:%M", tick_time);
+    // Want to strip the leading 0. Not just replace it with a *space*
+    // which is what %l does
+    if (buffer[0] == '0') 
+      memmove(buffer, buffer+1, strlen(buffer));
   }
 
   // Display this time on the TextLayer
@@ -162,7 +160,6 @@ static void show_real_time() {
 }
 
 static void shake_timer_callback(void *date) {
-
   switch (face_counter) {
   case 1:
     show_date();
@@ -170,15 +167,11 @@ static void shake_timer_callback(void *date) {
     shake_timer = app_timer_register(default_timeout, (AppTimerCallback) shake_timer_callback, NULL);
     break;
   case 2:
-    // Only show the weather if we have data
-    if (temperature) {
-      show_weather();
-      face_counter = 3;
-      shake_timer = app_timer_register(default_timeout, (AppTimerCallback) shake_timer_callback, NULL);
-      break;
-    }
-  default:
     show_time();
+    face_counter = 3;
+    shake_timer = app_timer_register(default_timeout, (AppTimerCallback) shake_timer_callback, NULL);
+    break;
+  default:
     face_counter = 0;
     light_enable(0);
   }
@@ -301,11 +294,11 @@ static void main_window_load(Window *window) {
   text_layer_set_text_alignment(s_text_layer, GTextAlignmentLeft);
 
   // Create hidden tet layer for showing accurate time in digits
-  s_numeral_layer = text_layer_create(GRect(0, 63, 144, 42));
+  s_numeral_layer = text_layer_create(GRect(0, 60, 144, 49));
   layer_set_hidden(text_layer_get_layer(s_numeral_layer), 1);
   text_layer_set_background_color(s_numeral_layer, GColorBlack);
   text_layer_set_text_color(s_numeral_layer, GColorWhite);
-  text_layer_set_font(s_numeral_layer, fonts_get_system_font(FONT_KEY_BITHAM_42_BOLD));
+  text_layer_set_font(s_numeral_layer, fonts_get_system_font(FONT_KEY_ROBOTO_BOLD_SUBSET_49));
   text_layer_set_text_alignment(s_numeral_layer, GTextAlignmentCenter);
 
   // Add it as a child layer to the Window's root layer
