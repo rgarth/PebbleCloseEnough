@@ -1,7 +1,7 @@
 
 // Location success can Inly take a single variable
 // It was just simply to declare a global
-var units = "Imperial";
+var units = "us";
 
 var xhrRequest = function (url, type, callback) {
   var xhr = new XMLHttpRequest();
@@ -9,15 +9,22 @@ var xhrRequest = function (url, type, callback) {
     callback(this.responseText);
   };
   xhr.open(type, url);
+  xhr.setRequestHeader("x-api-key", api_key);
   xhr.send();
 };
 
 function locationSuccess(pos) {
   // Construct URL
-  var url = "http://api.openweathermap.org/data/2.5/weather?" + 
-      "units=" + units +
-      "&lat=" + pos.coords.latitude +
-      "&lon=" + pos.coords.longitude;
+  
+  //migration to forecast.io
+  if (units == "metric") {
+    units = "si";
+  } else if (units =="imperial") {
+    units = "us";
+  }
+  
+  var url = "https://api.forecast.io/forecast//" + pos.coords.latitude + "," +
+      pos.coords.longitude + "?units=" + units;
   console.log("URL is " + url);
 
   // Send request to OpenWeatherMap
@@ -27,11 +34,11 @@ function locationSuccess(pos) {
       var json = JSON.parse(responseText);
 
       // Temperature in Kelvin requires adjustment
-      var temperature = Math.round(json.main.temp);
+      var temperature = Math.round(json.currently.temperature);
       console.log("Temperature is " + temperature);
 
       // Conditions
-      var conditions = json.weather[0].main;      
+      var conditions = json.currently.summary;      
       console.log("Conditions are " + conditions);
       
       // Assemble dictionary using our keys
@@ -92,8 +99,9 @@ Pebble.addEventListener('ready',
 // Listen for when an AppMessage is received
 Pebble.addEventListener('appmessage',
   function(e) {
-    console.log("AppMessage received: " + e.payload.KEY_UNITS);
+    console.log("AppMessage received");
     units = e.payload.KEY_UNITS;
+    api_key = e.payload.OWM_API_KEY;
     if (typeof units == 'undefined') {
       units = "imperial";
     }

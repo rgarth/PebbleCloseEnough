@@ -22,7 +22,7 @@ static int face_counter = 0;
 static int temperature;
 static char conditions_buffer[32];
 // First time we run there is no stored value
-static char temp_units[9] = "imperial";
+static char temp_units[9] = "us";
 
 static void v_align() {
   layer_set_frame(text_layer_get_layer(s_text_layer), GRect(0, 0, 144, 168));  
