@@ -1,70 +1,72 @@
 
-// Location success can Inly take a single variable
+// Location success can only take a single variable
 // It was just simply to declare a global
 var units = "us";
+var dictionary = new Object;
 
-var xhrRequest = function (url, type, callback) {
-  var xhr = new XMLHttpRequest();
-  xhr.onload = function () {
-    callback(this.responseText);
-  };
-  xhr.open(type, url);
-  xhr.setRequestHeader("x-api-key", api_key);
-  xhr.send();
-};
 
 function locationSuccess(pos) {
-  // Construct URL
-  
-  //migration to forecast.io
-  if (units == "metric") {
-    units = "si";
-  } else if (units =="imperial") {
-    units = "us";
+  // We neeed to get the Yahoo woeid first
+  var woeid;
+  var query = 'select * from geo.placefinder where text="' +
+    pos.coords.latitude + ',' + pos.coords.longitude + '" and gflags="R"';
+  console.log(query);
+  var url = 'https://query.yahooapis.com/v1/public/yql?q=' + query + '&format=json';
+  console.log(url);
+  // Send request to Yahoo
+  var xhr = new XMLHttpRequest();
+  xhr.onload = function () {
+    var json = JSON.parse(this.responseText);
+    woeid = json.query.results.Result.woeid;
+    console.log (woeid);
+    getWeather(woeid);
+  };
+  xhr.open('GET', url);
+  xhr.send();
+
+}
+
+function getWeather(woeid) {
+
+  var temperature;
+
+  if (units == "us" || units == "f" ) {
+    units = "f";
+  } else {
+    units = "c";
   }
-  
-  var url = "https://api.forecast.io/forecast//" + pos.coords.latitude + "," +
-      pos.coords.longitude + "?units=" + units;
-  console.log("URL is " + url);
 
-  // Send request to OpenWeatherMap
-  xhrRequest(url, 'GET', 
-    function(responseText) {
-      // responseText contains a JSON object with weather info
-      var json = JSON.parse(responseText);
-
-      // Temperature in Kelvin requires adjustment
-      var temperature = Math.round(json.currently.temperature);
-      console.log("Temperature is " + temperature);
-
-      // Conditions
-      var conditions = json.currently.summary;      
-      console.log("Conditions are " + conditions);
-      
-      // Assemble dictionary using our keys
-      var dictionary = {
-        "KEY_TEMPERATURE": temperature,
-        "KEY_CONDITIONS": conditions
-      };
-
-      // Send to Pebble
-      Pebble.sendAppMessage(dictionary,
-        function(e) {
-          console.log("Weather info sent to Pebble successfully!");
-        },
-        function(e) {
-          console.log("Error sending weather info to Pebble!");
-        }
-      );
-    }      
-  );
+  var query = 'select * from weather.forecast where woeid = ' + woeid + ' and u="' + units + '"';
+  console.log(query);
+  var url = 'https://query.yahooapis.com/v1/public/yql?q=' + query + '&format=json&env=store://datatables.org/alltableswithkeys';
+  console.log(url);
+  // Send request to Yahoo
+  var xhr = new XMLHttpRequest();
+  xhr.onload = function () {
+    var json = JSON.parse(this.responseText);
+    temperature = parseInt(json.query.results.channel.item.condition.temp);
+    dictionary["KEY_TEMPERATURE"] = temperature;
+    console.log ("Temperature is " + temperature);
+    // Send to Pebble
+    Pebble.sendAppMessage(dictionary,
+    function(e) {
+      console.log("Weather info sent to Pebble successfully!");
+    },
+    function(e) {
+      console.log("Error sending weather info to Pebble!");
+    }
+    );
+  };
+  xhr.open('GET', url);
+  xhr.send();
 }
 
 function locationError(err) {
   console.log("Error requesting location!");
 }
 
-function getWeather() {
+// Get Location lat+lon
+function getLocation() {
   navigator.geolocation.getCurrentPosition(
     locationSuccess,
     locationError,
@@ -73,7 +75,7 @@ function getWeather() {
 }
 
 // Listen for when the watchface is opened
-Pebble.addEventListener('ready', 
+Pebble.addEventListener('ready',
   function(e) {
     console.log("PebbleKit JS ready!");
     var dictionary = {
@@ -89,10 +91,6 @@ Pebble.addEventListener('ready',
         console.log("Error ready notice to Pebble!");
       }
     );
- 
-
-    // Get the initial weather
-    //getWeather();
   }
 );
 
@@ -101,10 +99,9 @@ Pebble.addEventListener('appmessage',
   function(e) {
     console.log("AppMessage received");
     units = e.payload.KEY_UNITS;
-    api_key = e.payload.OWM_API_KEY;
-    if (typeof units == 'undefined') {
-      units = "imperial";
-    }
-    getWeather();
-  }                     
+    if (typeof units == 'undefined') units = "us";
+
+    console.log("Units = " + units);
+    getLocation();
+  }
 );
