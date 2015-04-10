@@ -26,4 +26,4 @@ Pebble.addEventListener('webviewclosed',
       }
     );
   }
-); 
+);

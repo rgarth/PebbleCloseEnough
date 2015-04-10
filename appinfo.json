@@ -10,26 +10,22 @@
         "configurable"
     ],
     "companyName": "rgarth@gmail.com",
-    "longName": "Close Enough Watchface",
+    "longName": "Close Enough",
     "projectType": "native",
     "resources": {
         "media": [
             {
                 "file": "images/icon.png",
-                "menuIcon": true,
                 "name": "ICON",
                 "type": "png"
             }
         ]
     },
-    "sdkVersion": "3",
+    "sdkVersion": "2",
     "shortName": "Close Enough",
-    "targetPlatforms": [
-        "aplite"
-    ],
     "uuid": "72d63c23-bf42-49ea-8deb-964e3b7af7b1",
     "versionCode": 1,
-    "versionLabel": "2.8",
+    "versionLabel": "3.0",
     "watchapp": {
         "watchface": true
     }

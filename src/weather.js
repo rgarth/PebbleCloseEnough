@@ -29,6 +29,7 @@ function locationSuccess(pos) {
 function getWeather(woeid) {
 
   var temperature;
+  var conditions;
 
   if (units == "us" || units == "f" ) {
     units = "f";
@@ -45,8 +46,10 @@ function getWeather(woeid) {
   xhr.onload = function () {
     var json = JSON.parse(this.responseText);
     temperature = parseInt(json.query.results.channel.item.condition.temp);
+    conditions = json.query.results.channel.item.condition.text;
+    console.log (temperature + " " + conditions);
     dictionary["KEY_TEMPERATURE"] = temperature;
-    console.log ("Temperature is " + temperature);
+    dictionary["KEY_CONDITIONS"] = conditions;
     // Send to Pebble
     Pebble.sendAppMessage(dictionary,
     function(e) {
