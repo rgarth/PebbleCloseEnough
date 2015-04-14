@@ -103,7 +103,9 @@ Pebble.addEventListener('appmessage',
     console.log("AppMessage received");
     units = e.payload.KEY_UNITS;
     if (typeof units == 'undefined') units = "us";
-
+    var color = e.payload.KEY_COLOR;
+    localStorage.setItem('color', color);
+ 
     console.log("Units = " + units);
     getLocation();
   }

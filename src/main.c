@@ -4,6 +4,9 @@
 #define KEY_CONDITIONS 1
 #define KEY_UNITS 2
 #define KEY_JSREADY 3
+#define KEY_FOREGROUND 4
+#define KEY_BACKGROUND 5
+#define KEY_COLOR 6
 
 #define MyTupletCString(_key, _cstring) \
   ((const Tuplet) { .type = TUPLE_CSTRING, .key = _key, .cstring = { .data = _cstring, .length = strlen(_cstring) + 1 }})
@@ -18,9 +21,11 @@ char *temp_units = "us";
 int temperature;
 char conditions[32];
 
+// Colors
+GColor bg_color, fg_color;
+
 // default time to show extra windows
 int default_timeout = 3000;
-
 
 static void v_align_text_layer(TextLayer *text_layer) {
   // simple function take a texy_layer and align it vertically
@@ -42,18 +47,21 @@ static void update_weather() {
   if (bluetooth_connection_service_peek()) {
     APP_LOG(APP_LOG_LEVEL_INFO, "Phone is connected!");
 
+    #ifdef PBL_COLOR
+      bool is_color = true;
+    #else
+      bool is_color = false;
+    #endif
     // Begin dictionary
     DictionaryIterator *iter;
     app_message_outbox_begin(&iter);
-
-    Tuplet tuple = MyTupletCString(KEY_UNITS, temp_units);
-
-    // Add a key-value pair
-    dict_write_tuplet(iter, &tuple);
-
-    // Send the message!
+    Tuplet dictionary[] = {
+      MyTupletCString(KEY_UNITS, temp_units),
+      TupletInteger(KEY_COLOR, is_color),
+    };
+    dict_write_tuplet(iter, &dictionary[0]);
+    dict_write_tuplet(iter, &dictionary[1]);
     app_message_outbox_send();
-
   } else {
     APP_LOG(APP_LOG_LEVEL_INFO, "Phone is not connected!");
   }  
@@ -148,6 +156,24 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       APP_LOG(APP_LOG_LEVEL_INFO, "Storing temperature units: %s", temp_units);
       update_weather();
       break;
+    case KEY_BACKGROUND:
+      // bg color returned from configuration.js
+      #ifdef PBL_COLOR
+        bg_color = GColorFromHEX(t->value->int32);
+        persist_write_int(KEY_BACKGROUND, t->value->int32);
+        // The main window is persistently loaded so we need to change the background color
+        window_set_background_color(s_main_window, bg_color);
+      #endif
+      break;
+   case KEY_FOREGROUND:
+      // bg color returned from configuration.js
+      #ifdef PBL_COLOR
+        fg_color = GColorFromHEX(t->value->int32);
+        persist_write_int(KEY_FOREGROUND, t->value->int32);
+        // The main window is persistently loaded so we need to change the text color
+        text_layer_set_text_color(s_main_text_layer, fg_color);
+      #endif
+      break;
     case KEY_JSREADY:
       APP_LOG(APP_LOG_LEVEL_INFO, "PebbleJS is ready!");
       if (t->value->int16) {
@@ -225,11 +251,13 @@ static void tap_handler(AccelAxisType axis, int32_t direction) {
 
 static void main_window_load(Window *window) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Loaded main window");
+
+  window_set_background_color(window, bg_color);
   
   // Create time TextLayer
   s_main_text_layer = text_layer_create(GRect(0, 0, 144, 168));
   text_layer_set_background_color(s_main_text_layer, GColorClear);
-  text_layer_set_text_color(s_main_text_layer, GColorWhite);
+  text_layer_set_text_color(s_main_text_layer, fg_color);
   text_layer_set_font(s_main_text_layer, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK));
   text_layer_set_text_alignment(s_main_text_layer, GTextAlignmentLeft);
   text_layer_set_overflow_mode(s_main_text_layer, GTextOverflowModeWordWrap);
@@ -244,6 +272,10 @@ static void main_window_unload(Window *window) {
 
 static void time_window_load(Window *window){
   APP_LOG(APP_LOG_LEVEL_INFO, "Loaded time window");
+  
+  window_set_background_color(window, bg_color);
+
+  
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
 
@@ -265,7 +297,7 @@ static void time_window_load(Window *window){
   
   s_time_text_layer = text_layer_create(GRect(0, 0, 144, 168));
   text_layer_set_background_color(s_time_text_layer, GColorClear);
-  text_layer_set_text_color(s_time_text_layer, GColorWhite);
+  text_layer_set_text_color(s_time_text_layer, fg_color);
   text_layer_set_font(s_time_text_layer, fonts_get_system_font(FONT_KEY_ROBOTO_BOLD_SUBSET_49));
   text_layer_set_text_alignment(s_time_text_layer, GTextAlignmentCenter);
   // Display this time on the TextLayer
@@ -282,6 +314,9 @@ static void time_window_unload(Window *window){
 
 static void date_window_load(Window *window) {
   APP_LOG(APP_LOG_LEVEL_INFO, "Loaded date window");
+  
+  window_set_background_color(window, bg_color);
+  
   time_t temp = time(NULL);
   struct tm *tick_time = localtime(&temp);
   static char d_buffer[7];
@@ -289,7 +324,7 @@ static void date_window_load(Window *window) {
   strftime(d_buffer, sizeof(d_buffer), "%b %d", tick_time);
   s_date_text_layer = text_layer_create(GRect(0, 50, 144, 34));
   text_layer_set_background_color(s_date_text_layer, GColorClear);
-  text_layer_set_text_color(s_date_text_layer, GColorWhite);
+  text_layer_set_text_color(s_date_text_layer, fg_color);
   text_layer_set_font(s_date_text_layer, fonts_get_system_font(FONT_KEY_BITHAM_30_BLACK));
   text_layer_set_text_alignment(s_date_text_layer, GTextAlignmentCenter);
   // Display the date on the TextLayer
@@ -298,12 +333,11 @@ static void date_window_load(Window *window) {
   
   s_weather_text_layer = text_layer_create(GRect(0,84,144,84));
   text_layer_set_background_color(s_weather_text_layer, GColorClear);
-  text_layer_set_text_color(s_weather_text_layer, GColorWhite);
+  text_layer_set_text_color(s_weather_text_layer, fg_color);
   text_layer_set_font(s_weather_text_layer, fonts_get_system_font(FONT_KEY_GOTHIC_28_BOLD));
   text_layer_set_text_alignment(s_weather_text_layer, GTextAlignmentCenter);
   // Display the weather on the TextLayer
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_weather_text_layer));
-  APP_LOG(APP_LOG_LEVEL_INFO, "Temperature: %i!!", temperature);
   if (temperature) {
     snprintf(w_buffer, sizeof(w_buffer), "%i\u00B0", temperature);
     if (conditions[0] != '\0') {
@@ -321,11 +355,22 @@ static void date_window_unload(Window *window) {
 }
 
 static void init () {
+  
   // Load stored values
   if (persist_exists(KEY_UNITS)) {
     persist_read_string(KEY_UNITS, temp_units, sizeof(temp_units));
     APP_LOG(APP_LOG_LEVEL_INFO, "Reading temperature units: %s", temp_units);
   }
+  bg_color = GColorBlack;
+  fg_color = GColorWhite;
+  #ifdef PBL_COLOR
+    if (persist_exists(KEY_BACKGROUND)) {
+      bg_color = GColorFromHEX(persist_read_int(KEY_BACKGROUND));
+    }
+    if (persist_exists(KEY_FOREGROUND)) {
+      fg_color = GColorFromHEX(persist_read_int(KEY_FOREGROUND));
+    }
+  #endif
 
   // Register callbacks
   app_message_register_inbox_received(inbox_received_callback);
@@ -338,7 +383,6 @@ static void init () {
   // Create main Window element and assign to pointer.
   // And push it, push it real good.
   s_main_window = window_create();
-  window_set_background_color(s_main_window, GColorBlack);
   window_set_window_handlers(s_main_window, (WindowHandlers) {
     .load = main_window_load,
     .unload = main_window_unload
@@ -351,7 +395,6 @@ static void init () {
 
   // Create Time Window, but don't push it
   s_time_window = window_create();
-  window_set_background_color(s_time_window, GColorBlack);
   window_set_window_handlers(s_time_window, (WindowHandlers) {
     .load = time_window_load,
     .unload = time_window_unload
@@ -359,7 +402,6 @@ static void init () {
   
   //Creat Date Window, but don't push it
   s_date_window = window_create();
-  window_set_background_color(s_date_window, GColorBlack);
   window_set_window_handlers(s_date_window, (WindowHandlers) {
     .load = date_window_load,
     .unload = date_window_unload
