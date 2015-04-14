@@ -2,10 +2,11 @@ Pebble.addEventListener('showConfiguration', function(e) {
   // Show config page
   var units = localStorage.getItem('units');
   if (! units) units = "us";
-  var bg_color= parseInt(localStorage.getItem('bg_color'), 16);
+  var bg_color= localStorage.getItem('bg_color');
   if (! bg_color) bg_color = parseInt("000000", 16);
-  var fg_color= parseInt(localStorage.getItem('fg_color'), 16);
+  var fg_color= localStorage.getItem('fg_color');
   if (! fg_color) fg_color = parseInt("ffffff", 16);
+  console.log(units + " " + bg_color + " " + fg_color);
   
   var color = localStorage.getItem('color');
   console.log ("Color Watch? " + color);
@@ -31,8 +32,8 @@ Pebble.addEventListener('webviewclosed',
       "KEY_FOREGROUND": parseInt(configuration.fg_color, 16)
     };
     localStorage.setItem('units', configuration.units);
-    localStorage.setItem('bg_color', parseInt(configuration.bg_color, 16));
-    localStorage.setItem('fg_color', parseInt(configuration.fg_color, 16));
+    localStorage.setItem('bg_color', configuration.bg_color);
+    localStorage.setItem('fg_color', configuration.fg_color);
     // Send to Pebble
     Pebble.sendAppMessage(dictionary,
       function(e) {
