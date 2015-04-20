@@ -4,6 +4,7 @@
         "KEY_COLOR": 6,
         "KEY_CONDITIONS": 1,
         "KEY_FOREGROUND": 4,
+        "KEY_INVERT": 7,
         "KEY_JSREADY": 3,
         "KEY_TEMPERATURE": 0,
         "KEY_UNITS": 2
@@ -32,7 +33,7 @@
     ],
     "uuid": "72d63c23-bf42-49ea-8deb-964e3b7af7b1",
     "versionCode": 1,
-    "versionLabel": "3.2",
+    "versionLabel": "3.3",
     "watchapp": {
         "watchface": true
     }

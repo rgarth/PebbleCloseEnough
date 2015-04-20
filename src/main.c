@@ -7,6 +7,7 @@
 #define KEY_FOREGROUND 4
 #define KEY_BACKGROUND 5
 #define KEY_COLOR 6
+#define KEY_INVERT 7
 
 #define MyTupletCString(_key, _cstring) \
   ((const Tuplet) { .type = TUPLE_CSTRING, .key = _key, .cstring = { .data = _cstring, .length = strlen(_cstring) + 1 }})
@@ -20,6 +21,7 @@ AppTimer *shake_timer;
 char *temp_units = "us";
 int temperature;
 char conditions[32];
+bool invert = false;
 
 // Colors
 GColor bg_color, fg_color;
@@ -179,6 +181,23 @@ static void inbox_received_callback(DictionaryIterator *iterator, void *context)
       if (t->value->int16) {
         update_weather();
       }
+      break;
+    case KEY_INVERT:
+      // invert field
+      #ifdef PBL_BW
+        invert = t->value->int8;
+        persist_write_bool(KEY_INVERT, invert);
+        APP_LOG(APP_LOG_LEVEL_INFO, "Storing invert value: %i", invert);
+        if ( invert ) {
+          fg_color = GColorBlack;
+          bg_color = GColorWhite;
+        } else {
+          fg_color = GColorWhite;         
+          bg_color = GColorBlack;
+        }
+        window_set_background_color(s_main_window, bg_color);
+        text_layer_set_text_color(s_main_text_layer, fg_color);
+      #endif
       break;
     default:
       APP_LOG(APP_LOG_LEVEL_ERROR, "Key %d not recognized!", (int)t->key);
@@ -369,6 +388,16 @@ static void init () {
     }
     if (persist_exists(KEY_FOREGROUND)) {
       fg_color = GColorFromHEX(persist_read_int(KEY_FOREGROUND));
+    }
+  #else
+    if (persist_exists(KEY_INVERT)) {
+      invert = persist_read_int(KEY_INVERT);
+      APP_LOG(APP_LOG_LEVEL_INFO, "Reading invert value: %i", invert);
+      if ( invert ) {
+        bg_color = GColorWhite; 
+        fg_color = GColorBlack;
+        APP_LOG(APP_LOG_LEVEL_INFO, "Inverting colors");
+      }
     }
   #endif
 
