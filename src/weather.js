@@ -2,8 +2,6 @@
 // Location success can only take a single variable
 // It was just simply to declare a global
 var units = "us";
-var dictionary = new Object;
-
 
 function locationSuccess(pos) {
   // We neeed to get the Yahoo woeid first
@@ -48,8 +46,10 @@ function getWeather(woeid) {
     temperature = parseInt(json.query.results.channel.item.condition.temp);
     conditions = json.query.results.channel.item.condition.text;
     console.log (temperature + " " + conditions);
-    dictionary["KEY_TEMPERATURE"] = temperature;
-    dictionary["KEY_CONDITIONS"] = conditions;
+    var dictionary = {
+      'KEY_TEMPERATURE': temperature,
+      'KEY_CONDITIONS': conditions
+    };
     // Send to Pebble
     Pebble.sendAppMessage(dictionary,
     function(e) {
