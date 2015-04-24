@@ -9,7 +9,7 @@ function locationSuccess(pos) {
   var query = 'select * from geo.placefinder where text="' +
     pos.coords.latitude + ',' + pos.coords.longitude + '" and gflags="R"';
   console.log(query);
-  var url = 'https://query.yahooapis.com/v1/public/yql?q=' + query + '&format=json';
+  var url = 'https://query.yahooapis.com/v1/public/yql?q=' + encodeURIComponent(query) + '&format=json';
   console.log(url);
   // Send request to Yahoo
   var xhr = new XMLHttpRequest();
@@ -37,7 +37,7 @@ function getWeather(woeid) {
 
   var query = 'select * from weather.forecast where woeid = ' + woeid + ' and u="' + units + '"';
   console.log(query);
-  var url = 'https://query.yahooapis.com/v1/public/yql?q=' + query + '&format=json&env=store://datatables.org/alltableswithkeys';
+  var url = 'https://query.yahooapis.com/v1/public/yql?q=' + encodeURIComponent(query) + '&format=json&env=store://datatables.org/alltableswithkeys';
   console.log(url);
   // Send request to Yahoo
   var xhr = new XMLHttpRequest();
