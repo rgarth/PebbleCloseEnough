@@ -29,18 +29,18 @@ GColor bg_color, fg_color;
 // default time to show extra windows
 int default_timeout = 3000;
 
-static void v_align_text_layer(TextLayer *text_layer) {
+static void v_align_text_layer(TextLayer *text_layer, int x_offset) {
   // simple function take a texy_layer and align it vertically
   // on the window. The assummption is that the layer's parent is
   // the window
-  layer_set_frame(text_layer_get_layer(text_layer), GRect(0, 0, 144, 168));
+  layer_set_frame(text_layer_get_layer(text_layer), GRect(x_offset, 0, 144, 168));
   GSize text_size = (text_layer_get_content_size(text_layer));
   // Cutting the bottom of 'g'
   int text_height = text_size.h + 5;
   int y_origin = (168/2) - (text_height/2);
   if (y_origin > 0) {
     text_layer_set_size(text_layer, text_size);
-    layer_set_frame(text_layer_get_layer(text_layer), GRect(0, y_origin, 144, text_height));
+    layer_set_frame(text_layer_get_layer(text_layer), GRect(x_offset, y_origin, 144, text_height));
   }
 }
 
@@ -130,7 +130,7 @@ static void show_time() {
 
   // Display this time on the TextLayer
   text_layer_set_text(s_main_text_layer, buffer);
-  v_align_text_layer(s_main_text_layer);
+  v_align_text_layer(s_main_text_layer, 2);
 }
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
@@ -281,7 +281,7 @@ static void main_window_load(Window *window) {
   text_layer_set_text_alignment(s_main_text_layer, GTextAlignmentLeft);
   text_layer_set_overflow_mode(s_main_text_layer, GTextOverflowModeWordWrap);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_main_text_layer));
-  v_align_text_layer(s_main_text_layer);
+  v_align_text_layer(s_main_text_layer, 2);
 }
 
 static void main_window_unload(Window *window) {
@@ -322,7 +322,7 @@ static void time_window_load(Window *window){
   // Display this time on the TextLayer
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_time_text_layer));
   text_layer_set_text(s_time_text_layer, buffer);
-  v_align_text_layer(s_time_text_layer);
+  v_align_text_layer(s_time_text_layer, 0);
 
 }
 
