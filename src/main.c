@@ -50,9 +50,9 @@ static void update_weather() {
     APP_LOG(APP_LOG_LEVEL_INFO, "Phone is connected!");
 
     #ifdef PBL_COLOR
-      bool is_color = true;
+      int is_color = 1;
     #else
-      bool is_color = false;
+      int is_color = 0;
     #endif
     // Begin dictionary
     DictionaryIterator *iter;
@@ -130,7 +130,7 @@ static void show_time() {
 
   // Display this time on the TextLayer
   text_layer_set_text(s_main_text_layer, buffer);
-  v_align_text_layer(s_main_text_layer, 2);
+  v_align_text_layer(s_main_text_layer, 5);
 }
 
 static void inbox_received_callback(DictionaryIterator *iterator, void *context) {
@@ -281,7 +281,7 @@ static void main_window_load(Window *window) {
   text_layer_set_text_alignment(s_main_text_layer, GTextAlignmentLeft);
   text_layer_set_overflow_mode(s_main_text_layer, GTextOverflowModeWordWrap);
   layer_add_child(window_get_root_layer(window), text_layer_get_layer(s_main_text_layer));
-  v_align_text_layer(s_main_text_layer, 2);
+  v_align_text_layer(s_main_text_layer, 5);
 }
 
 static void main_window_unload(Window *window) {

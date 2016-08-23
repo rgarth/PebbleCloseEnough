@@ -2,49 +2,29 @@
 // Location success can only take a single variable
 // It was just simply to declare a global
 var units = "us";
+// OpenWeatherMap API Key
+var key = "";
 
 function locationSuccess(pos) {
-  // We neeed to get the Yahoo woeid first
-  var woeid;
-  var query = 'select * from geo.placefinder where text="' +
-    pos.coords.latitude + ',' + pos.coords.longitude + '" and gflags="R"';
-  console.log(query);
-  var url = 'https://query.yahooapis.com/v1/public/yql?q=' + encodeURIComponent(query) + '&format=json';
-  console.log(url);
-  // Send request to Yahoo
-  var xhr = new XMLHttpRequest();
-  xhr.onload = function () {
-    var json = JSON.parse(this.responseText);
-    woeid = json.query.results.Result.woeid;
-    console.log (woeid);
-    getWeather(woeid);
-  };
-  xhr.open('GET', url);
-  xhr.send();
-
-}
-
-function getWeather(woeid) {
-
   var temperature;
   var conditions;
 
-  if (units == "us" || units == "f" ) {
-    units = "f";
+  if (units == "us" || units == "imperial" ) {
+    units = "imperial";
   } else {
-    units = "c";
+    units = "metric";
   }
-
-  var query = 'select * from weather.forecast where woeid = ' + woeid + ' and u="' + units + '"';
-  console.log(query);
-  var url = 'https://query.yahooapis.com/v1/public/yql?q=' + encodeURIComponent(query) + '&format=json&env=store://datatables.org/alltableswithkeys';
+  var url = 'http://api.openweathermap.org/data/2.5/weather?lat=' + pos.coords.latitude +
+            '&lon=' + pos.coords.longitude + 
+            '&units=' + units +
+            '&appid=' + key;
   console.log(url);
-  // Send request to Yahoo
+  // Send request to OpenWeatherMap
   var xhr = new XMLHttpRequest();
   xhr.onload = function () {
     var json = JSON.parse(this.responseText);
-    temperature = parseInt(json.query.results.channel.item.condition.temp);
-    conditions = json.query.results.channel.item.condition.text;
+    temperature = Math.round(json.main.temp);
+    conditions = json.weather[0].main;
     console.log (temperature + " " + conditions);
     var dictionary = {
       'KEY_TEMPERATURE': temperature,
@@ -102,7 +82,7 @@ Pebble.addEventListener('appmessage',
   function(e) {
     console.log("AppMessage received");
     units = e.payload.KEY_UNITS;
-    if (typeof units == 'undefined') units = "us";
+    if (typeof units == 'undefined') units = "imperial";
     var color = e.payload.KEY_COLOR;
     localStorage.setItem('color', color);
  

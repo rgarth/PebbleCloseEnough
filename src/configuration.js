@@ -11,6 +11,7 @@ Pebble.addEventListener('showConfiguration', function(e) {
   console.log(units + " " + bg_color + " " + fg_color + " invert:" + invert);
   
   var color = localStorage.getItem('color');
+  if (! color) color = 0;
   console.log ("Color Watch? " + color);
   // Show config page
   console.log('Configuration window opened.');

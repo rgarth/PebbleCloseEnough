@@ -1,0 +1,44 @@
+{
+    "author": "rgarth@gmail.com",
+    "dependencies": {},
+    "keywords": [],
+    "name": "close-enough",
+    "pebble": {
+        "capabilities": [
+            "location",
+            "configurable"
+        ],
+        "displayName": "Close Enough",
+        "enableMultiJS": false,
+        "messageKeys": {
+            "KEY_BACKGROUND": 5,
+            "KEY_COLOR": 6,
+            "KEY_CONDITIONS": 1,
+            "KEY_FOREGROUND": 4,
+            "KEY_INVERT": 7,
+            "KEY_JSREADY": 3,
+            "KEY_TEMPERATURE": 0,
+            "KEY_UNITS": 2
+        },
+        "projectType": "native",
+        "resources": {
+            "media": [
+                {
+                    "file": "images/icon.png",
+                    "name": "ICON",
+                    "type": "bitmap"
+                }
+            ]
+        },
+        "sdkVersion": "3",
+        "targetPlatforms": [
+            "aplite",
+            "basalt"
+        ],
+        "uuid": "72d63c23-bf42-49ea-8deb-964e3b7af7b1",
+        "watchapp": {
+            "watchface": true
+        }
+    },
+    "version": "3.7.0"
+}
