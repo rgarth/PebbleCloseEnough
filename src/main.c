@@ -23,6 +23,9 @@ int temperature;
 char conditions[32];
 bool invert = false;
 
+// Stagger our connections to weather api so I do not exceed free tier
+int api_offset; 
+
 // Colors
 GColor bg_color, fg_color;
 
@@ -224,8 +227,9 @@ static void outbox_sent_callback(DictionaryIterator *iterator, void *context) {
 static void tick_handler(struct tm *tick_time, TimeUnits units_changed) {
   show_time();
 
-  // Get weather update every 30 minutes
-  if(tick_time->tm_min % 30 == 0){
+  // Get weather update every 30 minutes + offset
+  if(tick_time->tm_min % 30 == api_offset) {
+    APP_LOG(APP_LOG_LEVEL_INFO, "Minute: %i, Updating weather", tick_time->tm_min);
     update_weather();
   }
 
@@ -374,7 +378,11 @@ static void date_window_unload(Window *window) {
 }
 
 static void init () {
-  
+  // setup a random offset to not exceed the free tier on OpenWeatherMap
+  api_offset = rand() % 30;
+  APP_LOG(APP_LOG_LEVEL_INFO, "Weather API offset: %i", api_offset);
+
+
   // Load stored values
   if (persist_exists(KEY_UNITS)) {
     persist_read_string(KEY_UNITS, temp_units, sizeof(temp_units));
